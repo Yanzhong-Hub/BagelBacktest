@@ -1,3 +1,4 @@
 pandas~=2.2.2
 sqlalchemy~=2.0.30
 matplotlib~=3.9.0
+pymysql~=1.1.1

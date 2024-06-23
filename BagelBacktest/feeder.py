@@ -5,38 +5,58 @@ Email: eric.yanzhong.huang@outlook.com
 """
 
 import pandas as pd
+
+from datetime import datetime
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from sqlalchemy import create_engine, Engine, text
-from datetime import datetime
 from typing import Iterable
+
+from sqlalchemy import create_engine, Engine
 
 
 class Feeder(ABC):
     """Feeder base class"""
 
-    @abstractmethod
-    def feed(self) -> pd.DataFrame:
-        """Provide data to the BagelCore"""
-        ...
+    _price: pd.DataFrame = field(init=False)
+    _adjust_price: pd.DataFrame = field(init=False)
 
-    def data_validation(self, df: pd.DataFrame) -> pd.DataFrame:
+    def feed(self) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        feed price and adjust_price after valid data
+        :return: (price, adjust_price)
+        """
+        self._valid_data()
+        return self._price, self._adjust_price
+
+    def _valid_data(self) -> pd.DataFrame:
         """Validate data before feeding"""
+        pass
+
+    @abstractmethod
+    def _load_data(self) -> None:
+        """
+        load data to self.price and self.adjust_price
+        all subclass should implement this method
+        """
         ...
 
+    def __post_init__(self):
+        self._load_data()
 
-@dataclass(slots=True, frozen=True)
+
+@dataclass
 class DataFrameFeeder(Feeder):
-    """Feed dataframe"""
 
-    data: pd.DataFrame
+    price: pd.DataFrame
+    adjust_price: pd.DataFrame
 
-    def feed(self) -> pd.DataFrame:
-        self.data_validation(df=self.data)
-        return self.data
+    def _load_data(self) -> None:
+        self._price = self.price
+        self._adjust_price = self.adjust_price
 
 
-@dataclass(slots=True)
+@dataclass
 class BagelDatabaseFeeder(Feeder):
     """Mysql connectionl, please refer to TushareDownloader"""
 
@@ -45,43 +65,40 @@ class BagelDatabaseFeeder(Feeder):
     user: str
     password: str
     database: str
-    data: pd.DataFrame | None = None
-    engine: Engine = field(init=False)
 
-    def __post_init__(self):
-        """Connect to mysql server"""
-        self.engine = create_engine(
-            f'mysql+pymysql://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}',
+    codes: Iterable[str]
+    start_date: datetime
+    end_date: datetime
+
+    def _load_data(self) -> None:
+        engine = self._get_engine()
+        self._price = self._query_price(engine)
+        self._adjust_price = self._query_adjust_price(engine, self._price)
+
+    def _get_engine(self) -> Engine:
+        """get sqlalchemy engine"""
+        return create_engine(
+            f'mysql+pymysql://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}'
         )
 
-    def execute(self, sql: str) -> list:
-        """execute sql query"""
-        with self.engine.begin() as conn:
-            results = conn.execute(text(sql)).fetchall()
-            if results:
-                return [_ for _ in results]
-
-    def query_pv(self,
-                 codes: Iterable[str],
-                 account: str,
-                 table_name: str,
-                 date_range: (datetime, datetime)) -> None:
-        """
-        Query price and volume data from database
-        """
+    def _query_price(self, engine: Engine) -> pd.DataFrame:
+        """query price"""
         sql = f"""
-        SELECT trade_date, ts_code, {account} 
-        FROM {table_name} 
-        WHERE ts_code IN {tuple(codes)} 
-        AND trade_date BETWEEN '{date_range[0].strftime('%Y%m%d')}' AND '{date_range[1].strftime('%Y%m%d')}'
+        SELECT trade_date, close, ts_code FROM daily 
+        WHERE ts_code IN {tuple(self.codes)} 
+        AND trade_date BETWEEN '{self.start_date.strftime("%Y%m%d")}' AND '{self.end_date.strftime("%Y%m%d")}'
         """
-        df = pd.read_sql(sql, con=self.engine, parse_dates=['trade_date'])
-        df = df.pivot(index='trade_date', columns='ts_code', values=account)
-        self.data = df.sort_index()
+        price = pd.read_sql(sql, engine, parse_dates=['trade_date'])
+        price = price.pivot(index='trade_date', columns='ts_code', values='close')
+        return price.sort_index()
 
-    def feed(self) -> pd.DataFrame:
-        if isinstance(self.data, pd.DataFrame):
-            self.data_validation(df=self.data)
-            return self.data
-        else:
-            raise ValueError('No data, please use BagelDatabaseFeeder.query() methods to query data first')
+    def _query_adjust_price(self, engine: Engine, price: pd.DataFrame) -> pd.DataFrame:
+        """query adjust_price"""
+        sql = f"""
+        SELECT trade_date, adj_factor, ts_code FROM adj_factor 
+        WHERE ts_code IN {tuple(self.codes)} 
+        AND trade_date BETWEEN '{self.start_date.strftime("%Y%m%d")}' AND '{self.end_date.strftime("%Y%m%d")}'
+        """
+        adj_factor = pd.read_sql(sql, engine, parse_dates=['trade_date'])
+        adj_factor = adj_factor.pivot(index='trade_date', columns='ts_code', values='adj_factor').sort_index()
+        return price * adj_factor

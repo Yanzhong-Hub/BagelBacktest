@@ -15,6 +15,7 @@ from typing import Iterable
 from sqlalchemy import create_engine, Engine
 
 
+@dataclass(slots=True)
 class Feeder(ABC):
     """Feeder base class"""
 
@@ -45,7 +46,7 @@ class Feeder(ABC):
         self._load_data()
 
 
-@dataclass
+@dataclass(slots=True)
 class DataFrameFeeder(Feeder):
 
     price: pd.DataFrame
@@ -56,7 +57,7 @@ class DataFrameFeeder(Feeder):
         self._adjust_price = self.adjust_price
 
 
-@dataclass
+@dataclass(slots=True)
 class BagelDatabaseFeeder(Feeder):
     """Mysql connectionl, please refer to TushareDownloader"""
 

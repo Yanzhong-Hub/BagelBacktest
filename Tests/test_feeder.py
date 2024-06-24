@@ -3,8 +3,8 @@ Unit tests for feeder.py
 
 Author: Eric Yanzhong Huang
 Email: eric.yanzhong.huang@outlook.com
-
 """
+
 import json
 import pandas as pd
 from unittest import TestCase

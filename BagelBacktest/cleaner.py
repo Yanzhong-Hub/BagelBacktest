@@ -16,10 +16,8 @@ class Cleaner(ABC):
     cleaner abstract class
     """
 
-    data: pd.DataFrame
-
     @abstractmethod
-    def clean(self) -> pd.DataFrame:
+    def clean(self, data: pd.DataFrame) -> pd.DataFrame:
         """
         Clean method
         All subclass should implement this method
@@ -34,5 +32,5 @@ class EmptyCleaner(Cleaner):
     No cleaner
     """
 
-    def clean(self) -> pd.DataFrame:
-        return self.data
+    def clean(self, data: pd.DataFrame) -> pd.DataFrame:
+        return data

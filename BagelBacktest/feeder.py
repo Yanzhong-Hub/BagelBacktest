@@ -20,7 +20,7 @@ class Feeder(ABC):
     """Feeder base class"""
 
     _price: pd.DataFrame = field(init=False)
-    _adjust_price: pd.DataFrame = field(init=False)
+    _adj_price: pd.DataFrame = field(init=False)
 
     def feed(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """
@@ -28,7 +28,7 @@ class Feeder(ABC):
         :return: (price, adjust_price)
         """
         self._valid_data()
-        return self._price, self._adjust_price
+        return self._price, self._adj_price
 
     def _valid_data(self) -> pd.DataFrame:
         """Validate data before feeding"""
@@ -54,7 +54,7 @@ class DataFrameFeeder(Feeder):
 
     def _load_data(self) -> None:
         self._price = self.price
-        self._adjust_price = self.adjust_price
+        self._adj_price = self.adjust_price
 
 
 @dataclass(slots=True)
@@ -74,7 +74,7 @@ class BagelDatabaseFeeder(Feeder):
     def _load_data(self) -> None:
         engine = self._get_engine()
         self._price = self._query_price(engine)
-        self._adjust_price = self._query_adjust_price(engine, self._price)
+        self._adj_price = self._query_adj_price(engine, self._price)
 
     def _get_engine(self) -> Engine:
         """get sqlalchemy engine"""
@@ -93,7 +93,7 @@ class BagelDatabaseFeeder(Feeder):
         price = price.pivot(index='trade_date', columns='ts_code', values='close')
         return price.sort_index()
 
-    def _query_adjust_price(self, engine: Engine, price: pd.DataFrame) -> pd.DataFrame:
+    def _query_adj_price(self, engine: Engine, price: pd.DataFrame) -> pd.DataFrame:
         """query adjust_price"""
         sql = f"""
         SELECT trade_date, adj_factor, ts_code FROM adj_factor 

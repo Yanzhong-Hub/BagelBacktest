@@ -38,6 +38,15 @@ class TestBagelDatabaseFeeder(TestCase):
 
         The database config store at Tests/test_db_config.json
         *DO NOT INCLUDED IN GIT REPOSITORY*
+
+        Sample test_db_config.json
+        {
+            "host": "localhost",
+            "port": 3306,
+            "user": "root",
+            "password": "<YOUR_PASSWORD_HERE>",
+            "database": "tushare"
+        }
         """
         # setup date range
         start_date = datetime(2020, 1, 11)

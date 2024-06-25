@@ -17,26 +17,26 @@ class Transactions:
     Transactions class, generate signal
     """
 
-    transactions: dict[datetime, dict[str, int]] = field(default_factory=dict)  # trade_date, code, signal
+    _transactions: dict[datetime, dict[str, int]] = field(default_factory=dict)  # trade_date, code, signal
 
-    def add_transaction(self, trade_date: datetime, code: str, signal: int) -> None:
+    def add_transaction(self, trade_date: datetime, code: str, amount: int) -> None:
         """
         add single transaction into transactions
         """
-        if trade_date in self.transactions:
-            if code in self.transactions[trade_date]:
-                self.transactions[trade_date][code] += signal
+        if trade_date in self._transactions:
+            if code in self._transactions[trade_date]:
+                self._transactions[trade_date][code] += amount
             else:
-                self.transactions[trade_date][code] = signal
+                self._transactions[trade_date][code] = amount
         else:
-            self.transactions[trade_date] = {code: signal}
+            self._transactions[trade_date] = {code: amount}
 
     def generate_signal(self, adj_price: pd.DataFrame) -> pd.DataFrame:
         """
         generate signal DataFrame
         """
         signal = pd.DataFrame(0, index=adj_price.index, columns=adj_price.columns)
-        for trade_date, transaction in self.transactions.items():
+        for trade_date, transaction in self._transactions.items():
             for code, value in transaction.items():
                 self._validate_signal(trade_date, code, adj_price)
                 signal.loc[trade_date, code] = value

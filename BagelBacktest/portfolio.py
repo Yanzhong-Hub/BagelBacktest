@@ -4,6 +4,7 @@ Author: Eric Yanzhong Huang
 Email: eric.yanzhong.huang@outlook.com
 """
 
+import pandas as pd
 from dataclasses import dataclass
 
 
@@ -13,4 +14,7 @@ class Portfolio:
     Portfolio class
     contains backtest results
     """
-    pass
+
+    cash: pd.Series
+    amounts: pd.DataFrame
+    values: pd.DataFrame

@@ -25,7 +25,7 @@ class Core:
     """
 
     # required parameter
-    _feeder: Feeder
+    _feeder: Feeder = field(init=False)
 
     # optional parameter
     _initial_cash: float = 1_000_000
@@ -33,14 +33,21 @@ class Core:
     _strategy: Strategy = field(default_factory=BuyAndHoldStrategy)
     _transactions: Transactions = field(default_factory=Transactions)
 
+    def add_feeder(self, feeder: Feeder):
+        """Add a feeder to BagelBacktest"""
+        self._feeder = feeder
+
+    def add_strategy(self, strategy: Strategy):
+        """Add a Strategy to BagelBacktest"""
+        self._strategy = strategy
+
     def add_transaction(self, trade_date: datetime, code: str, amount: int):
-        """
-        Add a single transaction
-        """
+        """Add a single transaction"""
         self._transactions.add_transaction(trade_date, code, amount)
 
     def run(self) -> Portfolio:
-        """ run backtest, generate a Portfolio object 1. load price - feed
+        """
+        run backtest, generate a Portfolio object 1. load price - feed
             - data cleaning *optional
         2. generate signal
             - strategy *optional

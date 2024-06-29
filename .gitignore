@@ -162,3 +162,5 @@ cython_debug/
 .idea/
 
 Tests/test_db_config.json
+Tests/tushare_stock_basic.csv
+Tests/cached/

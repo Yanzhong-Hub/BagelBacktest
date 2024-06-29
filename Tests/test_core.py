@@ -21,13 +21,20 @@ class TestCore(TestCase):
         """
         with open('Tests/test_db_config.json') as f:
             db_config = json.load(f)
+
+        with open('Tests/tushare_stock_basic.csv') as f:
+            codes = f.read().splitlines()[1:]
+
         self.feeder = BagelDatabaseFeeder(**db_config,
-                                          codes=['000001.SZ', '000002.SZ'],
+                                          codes=codes,
                                           start_date=datetime(2023, 1, 1),
                                           end_date=datetime(2024, 1, 1))
+        self.feeder.set_cache('Tests/cached/main_board_price.csv',
+                              'Tests/cached/main_board_adj_price.csv')
 
     def test_add_transaction(self):
-        core = Core(self.feeder)
+        core = Core()
+        core.add_feeder(self.feeder)
         core.add_transaction(datetime(2023, 1, 4),
                              '000001.SZ',
                              10000)
@@ -35,7 +42,8 @@ class TestCore(TestCase):
         print(portfolio)
 
     def test_run(self):
-        core = Core(self.feeder)
+        core = Core()
+        core.add_feeder(self.feeder)
         portfolio = core.run()
-        portfolio.values.plot()
-        plt.show()
+
+        print(portfolio.values)

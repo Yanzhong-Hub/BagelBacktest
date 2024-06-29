@@ -27,6 +27,7 @@ class Feeder(ABC):
         feed price and adjust_price after valid data
         :return: (price, adjust_price)
         """
+        self._load_data()
         self._valid_data()
         return self._price, self._adj_price
 
@@ -42,13 +43,9 @@ class Feeder(ABC):
         """
         ...
 
-    def __post_init__(self):
-        self._load_data()
-
 
 @dataclass(slots=True)
 class DataFrameFeeder(Feeder):
-
     price: pd.DataFrame
     adjust_price: pd.DataFrame
 
@@ -71,10 +68,38 @@ class BagelDatabaseFeeder(Feeder):
     start_date: datetime
     end_date: datetime
 
+    _cache: bool = False
+    _cache_price_path: str = 'cached_price.csv'
+    _cache_adj_price_path: str = 'cached_adj_price.csv'
+
     def _load_data(self) -> None:
-        engine = self._get_engine()
-        self._price = self._query_price(engine)
-        self._adj_price = self._query_adj_price(engine, self._price)
+        if self._cache:
+            try:
+                # load cached csv file
+                self._price = pd.read_csv(self._cache_price_path,
+                                          parse_dates=['trade_date'],
+                                          index_col='trade_date')
+                self._adj_price = pd.read_csv(self._cache_adj_price_path,
+                                              parse_dates=['trade_date'],
+                                              index_col='trade_date')
+            except FileNotFoundError:
+                engine = self._get_engine()
+                self._price = self._query_price(engine)
+                self._adj_price = self._query_adj_price(engine, self._price)
+                # new cache
+                self._price.to_csv(self._cache_price_path)
+                self._adj_price.to_csv(self._cache_adj_price_path)
+        else:
+            # no cache
+            engine = self._get_engine()
+            self._price = self._query_price(engine)
+            self._adj_price = self._query_adj_price(engine, self._price)
+
+    def set_cache(self, cache_price_path: str, cache_adj_price_path: str) -> None:
+        """set cache"""
+        self._cache = True
+        self._cache_price_path = cache_price_path
+        self._cache_adj_price_path = cache_adj_price_path
 
     def _get_engine(self) -> Engine:
         """get sqlalchemy engine"""

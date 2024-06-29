@@ -64,3 +64,19 @@ class TestBagelDatabaseFeeder(TestCase):
     def test_pv_data(self) -> None:
         price, adj_price = self.db_feeder.feed()
         print(f'price: {price}, adj_price: {adj_price}')
+
+    def test_cache_feeder(self) -> None:
+        start_date = datetime(2000, 1, 11)
+        end_date = datetime(2023, 12, 31)
+        with open('Tests/test_db_config.json', 'r') as config_file:
+            db_config = json.load(config_file)
+        with open('Tests/tushare_stock_basic.csv', 'r') as f:
+            codes = f.read().splitlines()[1:]
+        feeder = BagelDatabaseFeeder(**db_config,
+                                     codes=codes,
+                                     start_date=start_date,
+                                     end_date=end_date)
+        feeder.set_cache('Tests/cached/main_board_price.csv',
+                         'Tests/cached/main_board_adj_price.csv')
+        price, adj_price = feeder.feed()
+        print(f'price: {price}, adj_price: {adj_price}')
